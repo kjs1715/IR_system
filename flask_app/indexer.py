@@ -51,7 +51,7 @@ def combine_files():
         end = time.time()
         print(file + ' completed, time : %f' % (end - start))
 
-def recover_sentence(self, terms):
+def recover_sentence(terms):
     sentence = ''
     terms = terms.split(' ')
     for term in terms:
@@ -80,7 +80,7 @@ class Indexer():
         raw_texts = []
         texts = []
         # for fileName in ['2_1','2_10','2_3']:
-        with open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r') as f:
+        with open('/root/corpus/corpus/Sogou0017', 'r') as f:
         # with open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r') as f:
             # f1 = open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r')
             start = time.time()

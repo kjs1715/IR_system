@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 from flask import Flask, render_template, request, redirect, url_for
 
-INDEX_DIR = '/Users/kim/Desktop/Git/IRsystem/flask_app/data'
+INDEX_DIR = '/root/IR_system/flask_app/data'
 app = Flask(__name__, instance_relative_config=True)
 
 
@@ -35,10 +35,11 @@ def search_phrase():
 
 if __name__ == '__main__':
     # initialize indexer
+    print('Initializing...')
     # combine_files()
     lucene.initVM()
-    if len(os.listdir(path=INDEX_DIR)) < 2: # always exists a file named .DS_store
-        Indexer(INDEX_DIR)
+    #if len(os.listdir(path=INDEX_DIR)) < 2: # always exists a file named .DS_store(Cant use in linux)
+    Indexer(INDEX_DIR)
     app.run()
 
     # for file in ['Sogou0015', 'Sogou0017', 'Sogou0011', 'Sogou0010', 'Sogou0007', 'Sogou0005']:
