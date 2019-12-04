@@ -51,14 +51,14 @@ def combine_files():
         end = time.time()
         print(file + ' completed, time : %f' % (end - start))
 
-def recover_sentence(self, terms):
-    sentence = ''
-    terms = terms.split(' ')
-    for term in terms:
-        term = term.split('\\')[0]
-        sentence += term
-    
-    return sentence
+    def recover_sentence(self, terms):
+        sentence = ''
+        terms = terms.split(' ')
+        for term in terms:
+            term = term.split('\\')[0]
+            sentence += term
+        
+        return sentence
 
 '''
     Indexing all corpus in Chinese with lucene
@@ -77,22 +77,13 @@ class Indexer():
 
     def IndexDocs(self, writer):
         line_count = 0
-        raw_texts = []
-        texts = []
         # for fileName in ['2_1','2_10','2_3']:
-        with open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r') as f:
-        # with open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r') as f:
-            # f1 = open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r')
+        with open('/Users/kim/Desktop/corpus/rmrb2_10_raw.txt', 'r') as f:
+            f1 = open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r')
             start = time.time()
-            line = f.readline()
+            line =  f1.readline()
+            raw_line = f.readline()
             while line:
-                line_count += 1
-                raw_texts.append(recover_sentence(line))
-                texts.append(line)
-                line = f.readline()
-
-            # raw_line = f.readline()
-            for i in range(len(line_count)):
                 line_count += 1
 
                 # field(raw)

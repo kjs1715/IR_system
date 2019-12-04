@@ -1,5 +1,6 @@
 <html>
     <body>
+        <font color="red">search</font>
         <div class='searchForm'>
             <form action="http://localhost:5000/search" method="get">
                 <input type="text" name="query">
@@ -9,7 +10,7 @@
         <div class='resultList'>
             <ol>
                 {% for hit in hits %}
-                    <li>{{ hit }}</li>
+                    <li>{{ hit | safe}}</li>
                 {% endfor %}
             </ol>
         </div>

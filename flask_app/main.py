@@ -35,16 +35,17 @@ def search_phrase():
 
 if __name__ == '__main__':
     # initialize indexer
-    # lucene.initVM()
-    # if len(os.listdir(path=INDEX_DIR)) < 2: # always exists a file named .DS_store
-    #     Indexer(INDEX_DIR)
-    # app.run()
+    # combine_files()
+    lucene.initVM()
+    if len(os.listdir(path=INDEX_DIR)) < 2: # always exists a file named .DS_store
+        Indexer(INDEX_DIR)
+    app.run()
 
-    for file in ['Sogou0015', 'Sogou0017', 'Sogou0011', 'Sogou0010', 'Sogou0007', 'Sogou0005']:
-        f = open('/Users/kim/Desktop/corpus/' + file, 'r')
-        line = f.readline()
-        print(line)
-        f.close()
+    # for file in ['Sogou0015', 'Sogou0017', 'Sogou0011', 'Sogou0010', 'Sogou0007', 'Sogou0005']:
+    #     f = open('/Users/kim/Desktop/corpus/' + file, 'r')
+    #     line = f.readline()
+    #     print(line)
+    #     f.close()
 
     # f = open('/Users/kim/Desktop/corpus/Sogou0010', 'r')
     # line_count = 0

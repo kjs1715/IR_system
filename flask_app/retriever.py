@@ -15,6 +15,9 @@ from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.search import IndexSearcher, Query, PhraseQuery
 from org.apache.lucene.search.highlight import Highlighter, QueryScorer, SimpleHTMLFormatter
 
+prefixHTML = u"<font color='red'>"
+suffixHTML = u"</font>"
+
 '''
     Retrieving query in indexed file, return results
 '''
@@ -33,19 +36,25 @@ class Retriever():
         analyzer = SmartChineseAnalyzer()
         reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(self.path)))
         searcher = IndexSearcher(reader)
+        indexreader = searcher.getIndexReader()
+        print(indexreader.numDocs())
         parser = QueryParser('raw_text', analyzer)
         query = parser.parse(term)
 
-        hits = searcher.search(query, 10).scoreDocs
+        hits = searcher.search(query, 20).scoreDocs
 
         for hit in hits:
-            print(hit.score, hit.doc, hit.toString())
             doc = searcher.doc(hit.doc)
-            sentence = doc.get("raw_text")
-            sentence1 = doc.get("text")
-            print(sentence)
-            print(sentence1)
-            self.hits.append(self.recover_sentence(sentence))
+            simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
+            highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
+            highLightText = highlighter.getBestFragment(analyzer, 'raw_text', doc.get('raw_text'))
+            print(hit.score, hit.doc, hit.toString())
+            print(highLightText)
+            raw_text = doc.get("raw_text")
+            text = doc.get("text")
+            print(raw_text)
+            print(text)
+            self.hits.append(highLightText)
             
         print('search over')
         reader.close()
