@@ -38,7 +38,7 @@ class Retriever():
         searcher = IndexSearcher(reader)
         indexreader = searcher.getIndexReader()
         print(indexreader.numDocs())
-        parser = QueryParser('raw_text', analyzer)
+        parser = QueryParser('text', analyzer)
         query = parser.parse(term)
 
         hits = searcher.search(query, 20).scoreDocs
@@ -47,12 +47,10 @@ class Retriever():
             doc = searcher.doc(hit.doc)
             simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
             highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
-            highLightText = highlighter.getBestFragment(analyzer, 'raw_text', doc.get('raw_text'))
+            highLightText = highlighter.getBestFragment(analyzer, 'text', recover_sentence(doc.get('text')))
             print(hit.score, hit.doc, hit.toString())
             print(highLightText)
-            raw_text = doc.get("raw_text")
             text = doc.get("text")
-            print(raw_text)
             print(text)
             self.hits.append(highLightText)
             

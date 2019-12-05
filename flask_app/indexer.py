@@ -76,6 +76,7 @@ class Indexer():
         self.IndexDocs(index_writer)
 
     def IndexDocs(self, writer):
+	start = time.time()
         line_count = 0
         raw_texts = []
         texts = []
@@ -83,45 +84,32 @@ class Indexer():
         with open('/root/corpus/corpus/Sogou0017', 'r') as f:
         # with open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r') as f:
             # f1 = open('/Users/kim/Desktop/corpus/rmrb2_10.txt', 'r')
-            start = time.time()
-            line = f.readline()
-            while line:
-                line_count += 1
-                raw_texts.append(recover_sentence(line))
-                texts.append(line)
-                line = f.readline()
-
-            # raw_line = f.readline()
-            for i in range(len(line_count)):
+	    for line in f:
                 line_count += 1
 
                 # field(raw)
-                fieldtype1 = FieldType()
-                fieldtype1.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
-                fieldtype1.setStored(True)
+                fieldtype = FieldType()
+                fieldtype.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
+                fieldtype.setStored(True)
                 # fieldtype1.setTokenized(True)
 
                 # field(result)
-                fieldtype2 = FieldType()
-                fieldtype2.setStored(True)
+                # fieldtype2 = FieldType()
+                #fieldtype2.setStored(True)
 
                 doc = Document()
-                doc.add(Field('raw_text', raw_line, fieldtype1))
-                doc.add(Field('text', line, fieldtype2))
+                # doc.add(Field('raw_text', recover_sentence(line), fieldtype1))
+                doc.add(Field('text', line, fieldtype))
 
                 writer.addDocument(doc)
                 # if line_count % LINE_LIMIT == 0:
                 #     break
-                line = f1.readline()
-                raw_line = f.readline()
-
-            writer.close()
-            print('indexing completed')
-            f1.close()
-            end = time.time()
-            print('time: %f' % (end - start))
-            print(line_count)
-            line_count = 0
+        writer.close()
+        print('indexing completed')
+        end = time.time()
+        print('time: %f' % (end - start))
+        print(line_count)
+        line_count = 0
         f.close()
 
         
