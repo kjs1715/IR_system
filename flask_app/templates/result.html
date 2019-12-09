@@ -1,17 +1,21 @@
 <html>
     <body>
-        <font color="red">search</font>
         <div class='searchForm'>
-            <form action="http://localhost:5000/search" method="get">
-                <input type="text" name="query">
-                <input type="submit" value="">
-            </form>
-        </div>
+                <form action="http://localhost:5000/search" method="get">
+                    search <input type="text" name="query">
+                    window <input type="text" name="window">
+                    <input type="submit" value="Search">
+                </form>
+            </div>
         <div class='resultList'>
             <ol>
-                {% for hit in hits %}
-                    <li>{{ hit | safe}}</li>
-                {% endfor %}
+                {% if hits != '' %}
+                    {% for hit in hits %}
+                        <li>{{ hit | safe}}</li>
+                    {% endfor %}
+                {% else %}
+                    Nothing found!
+                {% endif %}
             </ol>
         </div>
     </body>

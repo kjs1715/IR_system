@@ -2,6 +2,8 @@ import sys
 import os
 import lucene
 import thulac
+import time
+from functools import cmp_to_key
 from pathlib import Path
 from java.io import File
 from java.nio.file import Paths
@@ -14,11 +16,21 @@ from org.apache.lucene.analysis.core import WhitespaceAnalyzer
 from org.apache.lucene.index import IndexWriter, IndexWriterConfig, IndexOptions, IndexReader, DirectoryReader, Term
 from org.apache.lucene.util import Version
 from org.apache.lucene.queryparser.classic import QueryParser
-from org.apache.lucene.search import IndexSearcher, Query, PhraseQuery
+from org.apache.lucene.search import IndexSearcher, Query, PhraseQuery, TermQuery
 from org.apache.lucene.search.highlight import Highlighter, QueryScorer, SimpleHTMLFormatter
 
 prefixHTML = u"<font color='red'>"
 suffixHTML = u"</font>"
+
+# Add stopwords 
+with open('stopwords.txt', 'r') as f:
+	punctuation = []
+	for p in f:
+		punctuation.append(p)
+
+# chinese pucntuation
+punctuation2 = '。  ， ,  .  、 ： ； “ ” ‘ ’ 【 】 「 」 、 | 《  》 · - —— = + % < > ; : 0 （ ） ( )'
+punctuation2 = punctuation2.split()
 
 '''
 	Retrieving query in indexed file, return results
@@ -31,6 +43,9 @@ class Retriever():
 	reader = ''
 	searcher = ''
 	thu = ''
+
+	# cmp para for sort
+	sort_para = ''
 	def __init__(self, path):
 		print('Searcher initialized...')
 		self.path = path
@@ -40,35 +55,58 @@ class Retriever():
 		self.searcher = IndexSearcher(self.reader)
 		self.thu = thulac.thulac(deli='/')
 
-
-	def search(self, term):
+	'''
+		Main Search function of system, contains normal search, window-limit search, multi-terms search
+	'''
+	def search(self, term, window=2):
 		self.hits = []
-		indexreader = self.searcher.getIndexReader()
-		# print(indexreader.document(10))
+		index_list = []
+		sort_para = term
+
 		parser = QueryParser('text', self.analyzer)
 		query = parser.parse(term)
+		# multi-terms
+		if self.multi_terms(query):
+			self.search_multi_terms(query) 
+			return self.hits[:40]
 
-		hits = self.searcher.search(query, 20).scoreDocs
+		hits = self.searcher.search(query, 100).scoreDocs
 
 		for hit in hits:
+			index = []
 			doc = self.searcher.doc(hit.doc)
 			text = doc.get("text")
 			phrase = doc.get('phrase')
+			# print(hit.score, hit.doc, hit.toString())
+			# print(text)
+			# print(phrase)
+			self.hits.append(text)
+			# save indexes
+			terms = text.split()
+			for i in range(len(terms)):
+				if term == terms[i]:
+					index.append(i)
+			index_list.append(index)
+
+		self.recover_sentence(index_list, window)
+		hits_copy = self.hits
+		self.hits = []
+		for hit in hits_copy:
 			simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
 			highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
-			# highLightText = highlighter.getBestFragment(analyzer, 'text', self.recover_sentence(doc.get('text')))
-			highLightText = highlighter.getBestFragment(self.analyzer, 'text', self.recover_sentence(text))
-			print(hit.score, hit.doc, hit.toString())
-			print(text)
-			print(phrase)
-			self.hits.append(highLightText)
-			
+			highLightText = highlighter.getBestFragment(self.analyzer, 'text', hit)
+			if highLightText is not None:
+				self.hits.append(highLightText)
 		print('search over')
-		# reader.close()
-		return self.hits
+		return self.hits[:40]
 
+	'''
+		Phrase search for system, it will return result if phrase is same
+	'''
 	def search_phrase(self, term, phrase):
+		print('Phrase search')
 		self.hits = []
+		index_list = []
 		parser = QueryParser('text', self.analyzer)
 		query = parser.parse(term)   
 
@@ -77,47 +115,144 @@ class Retriever():
 			return 
 
 		for hit in hits:
+			index = []
 			doc = self.searcher.doc(hit.doc)
 			text = doc.get("text")
-			token_text = doc.get("token_text")
+			phrases = doc.get("phrase")
+
+			# processing with saved text and phrase
+			terms = text.split()
+			phrases = phrases.split()
+			flag = 1 # this flag is judging for phrase in every target term in text
+			index = [] # index number for searched term, maybe many terms
+			for i in range(len(terms)):
+				if term == terms[i]:
+					index.append(i)
+					if not phrase == phrases[i]:
+						flag = 0
+						break;
+			index_list.append(index)
+			if flag == 1:
+				self.hits.append(text)
+		self.recover_sentence(index_list)
+		hits_copy = self.hits
+		self.hits = []
+		for hit in hits_copy:
 			simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
 			highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
-			highLightText = highlighter.getBestFragment(analyzer, 'text', self.recover_sentence(doc.get('text')))
-			# highLightText = highlighter.getBestFragment(self.analyzer, 'text', text)
+			highLightText = highlighter.getBestFragment(self.analyzer, 'text', hit)
+			if highLightText is not None:
+				self.hits.append(highLightText)
 
-			token_terms = token_text.split(' ')
-			for token_term in token_terms:
-				token = token_term.split('/')
-				if token[0] == term:
-					if token[1] == phrase:
-						print('append %s' % term)
-						self.hits.append(highLightText)
-		return self.hits[:20]
+		return self.hits[:40]
+	
 
-	'''
-		Using thulac for marking phrase of query
-	'''
-	def mark_term(self, query):
-		marked_term = self.thu.cut(query, text=True)
-		term_sentence = ''
-		print(marked_term)
-		if len(marked_term) > 1:
-			for term in marked_term:
-				term_sentence += term
-		else:
-			term_sentence = marked_term[0]
-		return term_sentence
+	def search_multi_terms(self, query):
+		print('Multiterms search')
+		hits = self.searcher.search(query, 100).scoreDocs
+		for hit in hits:
+			doc = self.searcher.doc(hit.doc)
+			text = doc.get("text")
+			terms = text.split()
+			sentence = ''
+			for term in terms:
+				sentence += term
+			simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
+			highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
+			highLightText = highlighter.getBestFragment(self.analyzer, 'text', sentence)
+			if highLightText is not None:
+				self.hits.append(highLightText)
 		
 	'''
 		convert words into sentence
+		we just need two or three words for giving out results
+
+		:param
+			indexs : list of target term indexes
+			terms : str of target sentence -> terms[len(terms)] = ' ', terms[len(terms)-1] = punctuation (usually '。')
+		:return
+			No return, self.hits become [:20] -> can change value
 	'''
-	def recover_sentence(self, terms):
-		print(terms)
-		sentence = ''
-		terms = terms.split(' ')
-		print(terms)
-		for term in terms:
-			sentence += term
+	def recover_sentence(self, indexs, window=2):
+		hits_copy = self.hits
+		self.hits = []
+		for i in range(len(hits_copy)):
+			terms = hits_copy[i].split()
+			length = len(terms)
+
+			for index in indexs[i]:
+				combination = ''
+				if index == 0: 
+					sentence = terms[0] + terms[1] if terms[1] not in punctuation else terms[0]
+					combination += sentence + ' '
+				elif index == 1:
+					sentence = terms[0] + terms[1] + terms[2] if terms[2] not in punctuation else terms[0] + terms[1]
+					combination += sentence + ' '
+				elif index == length-2:
+					sentence = terms[length-3] + terms[length-2] if terms[length-3] not in punctuation else terms[length-2]
+					combination += sentence + ' '
+				elif index == length-3:
+					sentence = terms[length-4] + terms[length-3] + terms[length-2] if terms[length-4] not in punctuation else terms[length-3] + terms[length-2]
+				elif index >= 2 and index <= length-4:
+					combination = self.check_available(index, terms, window)
+				
+				# delete punc at first of sentence
+				combination = self.replace_punc(combination)
+				self.hits.append(combination)
+
+		
+		# delete duplicated datas and null data
+		self.hits = list(set(self.hits))
+		self.hits.sort(key=cmp_to_key(lambda x, y : self.compare(x, y)))
+		if '' in self.hits:
+			self.hits.remove('')
+		self.hits = self.hits[:100]
+		# print(self.hits)
+
+	''' 
+		check for term combinations with window size
+	'''
+	def check_available(self, index, terms, window=2):
+		sentence = terms[index]
+		length = len(terms)
+		left = index - window if index - window >= 0 else 0
+		right = index + window if index + window <= length-1 else length-1
+		l = index - 1
+		r = index + 1
+		while left < l and r < right:
+			if terms[l] not in punctuation:
+				temp = terms[l]
+				temp += sentence
+				sentence = temp
+				l -= 1
+			if terms[r] not in punctuation:
+				sentence += terms[r]
+				r += 1
+			if terms[l] in punctuation and terms[r] in punctuation:
+				break
 		return sentence
+	'''
+		Key for sort results
+	'''
+	def compare(self, x, y):
+		x_index = x.find(self.sort_para)
+		y_index = y.find(self.sort_para)
+		return x_index - y_index
+	
+	'''
+		Judge whether it is multiquery or not
+	'''
+	def multi_terms(self, query):
+		count = 0
+		query_str = query.toString().split()
+		for q in query_str:
+			count += 1
+		return True if count > 1 else False
 
-
+	def replace_punc(self, text):
+		print(text)
+		for p in punctuation2:
+			if p in text:
+				text = text.replace(p, ' ')
+		print(text)
+		return text

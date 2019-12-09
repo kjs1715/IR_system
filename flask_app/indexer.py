@@ -77,9 +77,6 @@ def test_analyzer():
 '''
 class Indexer():
 	def __init__(self, path):
-		stopwords = self.AddStopWords()
-		print(stopwords)
-
 		p = Path(path)
 		if not p.is_dir():
 			os.mkdir(path)
@@ -99,29 +96,36 @@ class Indexer():
 		# with open('/root/corpus/corpus/Sogou0017', 'r') as f:
 		
 		# f1 = open(CORPUS_DIR + 'rmrb0010', 'r')
-		with open(CORPUS_DIR + 'Sogou0017', 'r') as f:
-			for line in f:
-				terms, phrases = self.split_phrase(line)
-				line_count += 1
-				# token_line = f1.readline()
+		for file in os.listdir(CORPUS_DIR):
+			try:
+				if not file == '.DS_Store':
+					print(file)
+					with open(CORPUS_DIR + file, 'r') as f:
+						for line in f:
+							terms, phrases = self.split_phrase(line)
+							line_count += 1
+							# token_line = f1.readline()
 
-				# field(raw)
-				fieldtype = FieldType()
-				fieldtype.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
-				fieldtype.setStored(True)
-				fieldtype.setTokenized(True)
+							# field(raw)
+							fieldtype = FieldType()
+							fieldtype.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
+							fieldtype.setStored(True)
+							fieldtype.setTokenized(True)
 
-				# field(tokenized)
-				fieldtype2 = FieldType()
-				fieldtype2.setStored(True)
+							# field(tokenized)
+							fieldtype2 = FieldType()
+							fieldtype2.setStored(True)
 
-				doc = Document()
-				doc.add(Field('text', terms, fieldtype))
-				doc.add(Field('phrase', phrases, fieldtype2))
+							doc = Document()
+							doc.add(Field('text', terms, fieldtype))
+							doc.add(Field('phrase', phrases, fieldtype2))
 
-				writer.addDocument(doc)
-				# if line_count % LINE_LIMIT == 0:
-				# 	break
+							writer.addDocument(doc)
+							# if line_count % LINE_LIMIT == 0:
+							# 	break
+					f.close()
+			except:
+				print('Error')
 		writer.close()
 		print('indexing completed')
 		end = time.time()
@@ -129,21 +133,6 @@ class Indexer():
 		print(line_count)
 		line_count = 0
 		f.close()
-
-	def AddStopWords(self):
-		count = 0
-		f1 = open('stopwords1.txt', 'r' )
-		f2 = open('stopwords2.txt', 'r')
-		array_set = CharArraySet(2690, True)
-		for word in f1:
-			word = word.strip('\n')
-			array_set.add(word)
-		for word in f2:
-			array_set.add(word)
-		for word in stopwords_dic:
-				array_set.add(word)
-		f1.close()
-		f2.close()
 
 		return array_set
 
@@ -153,8 +142,9 @@ class Indexer():
 		terms = sentence.split(' ')
 		for term in terms:
 			temp = term.split('/')
-			term_combine += temp[0] + ' '
-			phrase_combine += temp[1] + ' '
+			if len(temp) > 1:
+				term_combine += temp[0] + ' '
+				phrase_combine += temp[1] + ' '
 		
 		return term_combine, phrase_combine
 		
