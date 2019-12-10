@@ -1,17 +1,40 @@
+<!doctype html>
 <html>
+    <head>
+        <meta charset="utf-8"> 
+        <title>IRsystem</title>
+        <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">  
+    </head>
     <body>
-        <div class='searchForm'>
-                <form action="http://localhost:5000/search" method="get">
-                    search <input type="text" name="query">
-                    window <input type="text" name="window">
-                    <input type="submit" value="Search">
-                </form>
-            </div>
-        <div class='resultList'>
-            <ol>
+        <div class='searchForm' style="position:fixed; top: 0%; box-shadow: 10px 10px 5px #888888;">
+            <form action="http://localhost:5000/search" method="get">
+                <div style="padding: 50px 100px 10px;">
+                    <div class="row">
+                        <div class="col-lg-5">
+                            <div class="input-group">
+                                <input type="text" name="query"class="form-control">
+                                <span class="input-group-btn">
+                                    <button class="btn btn-default" type="submit">Search!</button>
+                                </span>
+                            </div><!-- /input-group -->
+                        </div><!-- /.col-lg-6 -->
+                    </div><!-- /input-group -->
+                <div style="padding: 20px 0px 10px;">   
+                    <div class="row">
+                        <div class="col-lg-5">
+                            <div class="input-group">
+                                <input type="text" name="window" class="form-control" placeholder='Window size'>
+                            </div><!-- /input-group -->
+                        </div><!-- /.col-lg-6 -->
+                    </div><!-- /input-group -->
+                </div>
+            </form>
+        </div>
+        <div class='resultList' style="padding:10px; position:absolute; width:100%; height:1000px; overflow:auto; background-color: #888888;">
+            <ul class="list-group">
                 {% if hits != '' %}
                     {% for hit in hits %}
-                        <li>{{ hit | safe}}</li>
+                        <li class="list-group-item">{{ hit | safe}}</li>
                     {% endfor %}
                 {% else %}
                     Nothing found!

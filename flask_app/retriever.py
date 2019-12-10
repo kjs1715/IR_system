@@ -26,9 +26,10 @@ suffixHTML = u"</font>"
 with open('stopwords.txt', 'r') as f:
 	punctuation = []
 	for p in f:
-		punctuation.append(p)
+		punctuation.append(p.strip('\n'))
+print(punctuation[:50])
 
-# chinese pucntuation
+# some pucntuation for additional
 punctuation2 = '。  ， ,  .  、 ： ； “ ” ‘ ’ 【 】 「 」 、 | 《  》 · - —— = + % < > ; : 0 （ ） ( )'
 punctuation2 = punctuation2.split()
 
@@ -65,23 +66,21 @@ class Retriever():
 
 		parser = QueryParser('text', self.analyzer)
 		query = parser.parse(term)
-		# multi-terms
+		print(query)
+
+		# Jump to multi-terms search if there are several words
 		if self.multi_terms(query):
 			self.search_multi_terms(query) 
 			return self.hits[:40]
 
-		hits = self.searcher.search(query, 100).scoreDocs
+		hits = self.searcher.search(query, 1000).scoreDocs
 
 		for hit in hits:
 			index = []
 			doc = self.searcher.doc(hit.doc)
 			text = doc.get("text")
-			phrase = doc.get('phrase')
-			# print(hit.score, hit.doc, hit.toString())
-			# print(text)
-			# print(phrase)
 			self.hits.append(text)
-			# save indexes
+			# save indexes of target term in each document
 			terms = text.split()
 			for i in range(len(terms)):
 				if term == terms[i]:
@@ -101,7 +100,7 @@ class Retriever():
 		return self.hits[:40]
 
 	'''
-		Phrase search for system, it will return result if phrase is same
+		Phrase search for system, it will return result if the phrase is same
 	'''
 	def search_phrase(self, term, phrase):
 		print('Phrase search')
@@ -131,12 +130,13 @@ class Retriever():
 					if not phrase == phrases[i]:
 						flag = 0
 						break;
-			index_list.append(index)
 			if flag == 1:
 				self.hits.append(text)
+				index_list.append(index)
 		self.recover_sentence(index_list)
 		hits_copy = self.hits
 		self.hits = []
+		# add font tags for terms
 		for hit in hits_copy:
 			simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
 			highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
@@ -248,11 +248,14 @@ class Retriever():
 		for q in query_str:
 			count += 1
 		return True if count > 1 else False
-
+	'''
+		Replace punctuations 
+	'''
 	def replace_punc(self, text):
-		print(text)
 		for p in punctuation2:
 			if p in text:
 				text = text.replace(p, ' ')
-		print(text)
+		# remove first index if it is a spacebar
+		if text[:1] == '':
+			text = text[1:-1]
 		return text

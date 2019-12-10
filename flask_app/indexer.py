@@ -22,8 +22,6 @@ RAW_CORPUS_DIR = '/Users/kim/Desktop/raw_corpus/'
 SUFFIX = '_raw'
 LINE_LIMIT = 100000
 
-stopwords_dic = [' ', '\\', '\\n', '\\np', '\\ns', '\\ni', '\\nz', '\\m', '\\m', '\\q', '\\mq', '\\t', '\\f', '\\s', '\\v', '\\a', '\\d', '\\h', '\\k', '\\i', '\\j', '\\r', '\\c', '\\p', '\\u', '\\y', '\\e', '\\o', '\\g', '\\w', '\\x']
-
 '''
 	Combine seperated terms into sentences
 '''
@@ -89,6 +87,9 @@ class Indexer():
 		index_writer = IndexWriter(storeDir, config)
 		self.IndexDocs(index_writer)
 
+	'''
+		Main function for indexing documents
+	'''
 	def IndexDocs(self, writer):
 		start = time.time()
 		line_count = 0
@@ -136,6 +137,9 @@ class Indexer():
 
 		return array_set
 
+	'''
+		Use to seperate text and phrase
+	'''
 	def split_phrase(self, sentence):
 		term_combine = ''
 		phrase_combine = ''
