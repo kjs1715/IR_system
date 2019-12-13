@@ -1,4 +1,6 @@
 flask_app/__pycache__
 flask_app/data/
 flask_app/instance/
-w2v_model
+flask_app/w2v.model
+flask_app/w2v.model.trainables.syn1neg.npy
+flask_app/w2v.model.wv.vectors.npy
