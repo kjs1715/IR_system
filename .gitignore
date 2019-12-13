@@ -1,3 +1,4 @@
 flask_app/__pycache__
 flask_app/data/
 flask_app/instance/
+w2v_model

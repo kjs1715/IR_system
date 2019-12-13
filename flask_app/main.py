@@ -36,21 +36,33 @@ def search_phrase(query, retriever):
 	else:
 		return ''
 
+@app.route('/search_synonym')
+def search_synonym(query, retriever):
+	hits = retriever.search_synonym(query)
+	if hits:
+		return hits
+	else:
+		return ''
+
 # other searches
 @app.route('/search', methods=['GET', 'POST'])
 def search():
 	query = request.args.get('query')
+	synonym = True if request.args.get('synonym') == 'on' else False
 	print(query)
-	# 
+	
 	if query == '':
 		return render_template('nothing.html')
 	window = 2 if request.args.get('window') is '' else int(request.args.get('window'))
-	if '/' in query:
-		hits = search_phrase(query, retriever) 
+	if '/' in query or synonym:
+		if '/' in query:
+			hits = search_phrase(query, retriever) 
+		else:
+			hits = search_synonym(query, retriever)
 	else:
 		hits = retriever.search(query, window)
 	print(len(hits))
-	return render_template('result.html', hits=hits) if hits != '' and len(hits) > 0 else render_template('nothing.html')
+	return render_template('result.html', hits=hits, synonym=synonym, hits_count=len(hits)) if hits != '' and len(hits) > 0 else render_template('nothing.html')
 
 if __name__ == '__main__':
 	# initialize indexer

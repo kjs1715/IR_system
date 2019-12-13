@@ -7,6 +7,8 @@ from functools import cmp_to_key
 from pathlib import Path
 from java.io import File
 from java.nio.file import Paths
+import gensim
+from gensim.models import Word2Vec
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.document import Document, Field, FieldType
 from org.apache.lucene.analysis.cjk import CJKAnalyzer
@@ -44,6 +46,7 @@ class Retriever():
 	reader = ''
 	searcher = ''
 	thu = ''
+	w2v_model = ''
 
 	# cmp para for sort
 	sort_para = ''
@@ -55,6 +58,14 @@ class Retriever():
 		self.reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(self.path)))
 		self.searcher = IndexSearcher(self.reader)
 		self.thu = thulac.thulac(deli='/')
+
+		file = Path('w2v.model')
+		if file.is_file():
+			print('Model was already trained...loading model')
+			self.w2v_model = Word2Vec.load('w2v.model')
+		else:
+			self.model_train()
+			print('Model trained...')
 
 	'''
 		Main Search function of system, contains normal search, window-limit search, multi-terms search
@@ -164,6 +175,43 @@ class Retriever():
 				self.hits.append(highLightText)
 		
 	'''
+		Additional function, give example setences for synonym of query
+		:return
+			dict[term] = list of sentences
+	'''
+	def search_synonym(self, query):
+		self.hits_dict = {}
+		self.hits = []
+		similar_terms = self.w2v_model.most_similar(query)
+		parser = QueryParser('text', self.analyzer)
+		query = parser.parse(query)   
+		
+		for s_term in similar_terms[:20]:
+			s_term_query = parser.parse(s_term[0])   
+			hits = self.searcher.search(s_term_query, 1000).scoreDocs
+			hit_count = 0
+			for hit in hits:
+				doc = self.searcher.doc(hit.doc)
+				text = doc.get('text')
+				terms = text.split()
+				sentence = ''
+				for term in terms:
+					sentence += term
+				simpleHTMLFormatter = SimpleHTMLFormatter(prefixHTML, suffixHTML)
+				highlighter = Highlighter(simpleHTMLFormatter, QueryScorer(query))
+				highLightText = highlighter.getBestFragment(self.analyzer, 'text', sentence)
+				if highLightText is not None:
+					self.hits.append(highLightText)
+					hit_count += 1
+				if hit_count >= 3:
+					break
+				
+			if len(self.hits) > 0:
+				self.hits_dict[s_term] = self.hits
+				self.hits = []
+				
+		return self.hits_dict
+	'''
 		convert words into sentence
 		we just need two or three words for giving out results
 
@@ -259,3 +307,27 @@ class Retriever():
 		if text[:1] == '':
 			text = text[1:-1]
 		return text
+
+	# just take a corpus to test
+	def model_train(self):
+		# lac -> raw
+		sentences = []
+		count = 0
+		file = '/Users/kim/Desktop/corpus/Sogou0010'
+		with open(file, 'r') as f:
+			for line in f:
+				count += 1
+				sentence = []
+				text = line.strip('\n').split()
+				for term in text:
+					sentence.append(term.split('/')[0])
+				sentences.append(sentence)
+				if count == 1000000:
+					break
+		f.close()
+		print('start w2v modeling...')
+		start = time.time()
+		self.w2v_model = Word2Vec(sentences, sg=1, size=300, window=5)	
+		end = time.time()
+		print(end - start)
+		self.w2v_model.save('w2v.model')
